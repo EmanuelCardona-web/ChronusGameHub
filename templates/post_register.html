@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Completa tu perfil · Chronos Gaming Hub{% endblock %}
+
+{% block content %}
+<section class="chronos-panel chronos-panel-narrow">
+    <h1 class="chronos-title">Completa tu <span class="accent">Perfil</span></h1>
+    <p class="chronos-subtitle">
+        ¡Bienvenido {{ usuario.username }}! Para activar tu cuenta necesitamos tu documento de identidad.
+    </p>
+
+    <form class="chronos-form chronos-form-stacked" action="{{ url_for('auth.complete_profile') }}" method="POST">
+        <label for="tipo_documento">Tipo de documento</label>
+        <select id="tipo_documento" name="tipo_documento" required>
+            <option value="" disabled selected>Selecciona un tipo</option>
+            {% for tipo in tipos_documento %}
+            <option value="{{ tipo }}">{{ tipo }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="numero_documento">Número de documento</label>
+        <input type="text" id="numero_documento" name="numero_documento" placeholder="Ej: 1000123456" required>
+
+        <button type="submit" class="btn btn-primary btn-block">Guardar y continuar</button>
+    </form>
+</section>
+{% endblock %}

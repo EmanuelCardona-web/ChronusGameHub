@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Chronos Gaming Hub{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <header class="chronos-header">
+        <div class="chronos-logo">
+            <span class="chronos-logo-icon">⌗</span>
+            <span>CHRONOS <span class="accent">GAMING HUB</span></span>
+        </div>
+        <nav class="chronos-nav">
+            <details class="chronos-nav-dropdown">
+                <summary>Administraciones</summary>
+                <div class="chronos-nav-menu">
+                    <a href="{{ url_for('users.admin_usuarios') }}">Usuarios</a>
+                    <a href="{{ url_for('licenses.admin_licencias') }}">Licencias</a>
+                </div>
+            </details>
+            <a href="{{ url_for('auth.login') }}">Iniciar sesión</a>
+            <a href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
+        </nav>
+    </header>
+
+    <main class="chronos-main">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="chronos-flash-stack">
+                    {% for category, message in messages %}
+                        <div class="chronos-flash chronos-flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="chronos-footer">
+        <p>Chronos Gaming Hub &amp; Cloud Services &mdash; Arquitectura de Software II</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

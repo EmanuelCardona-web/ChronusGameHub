@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Administración de licencias · Chronos{% endblock %}
+
+{% block content %}
+<section class="chronos-panel">
+    <h1 class="chronos-title">Administración de <span class="accent">licencias</span></h1>
+    <p class="chronos-subtitle">{{ licencias|length }} registros</p>
+</section>
+
+<section class="chronos-table-panel">
+    <div class="chronos-table-heading">
+        <h2>Licencias de juego</h2>
+        <button class="btn btn-primary" type="button" onclick="document.getElementById('crear-licencia').showModal()">Crear nueva licencia</button>
+    </div>
+    <div class="chronos-table-scroll">
+        <table class="chronos-table">
+            <thead>
+                <tr><th>ID</th><th>Usuario</th><th>Tipo</th><th>Código</th><th>Estado</th><th>Acciones</th></tr>
+            </thead>
+            <tbody>
+                {% for l in licencias %}
+                <tr>
+                    <td>{{ l.id_licencia }}</td>
+                    <td>{{ l.usuario.username }} <span class="chronos-muted">(#{{ l.id_usuario }})</span></td>
+                    <td>{{ l.tipo_licencia }}</td>
+                    <td class="chronos-code">{{ l.codigo_activacion }}</td>
+                    <td>{{ l.estado }}</td>
+                    <td class="chronos-actions">
+                        <button class="btn btn-sm btn-accent" type="button" onclick="document.getElementById('editar-licencia-{{ l.id_licencia }}').showModal()">Editar</button>
+                        <form class="chronos-inline-form" action="{{ url_for('licenses.html_delete_licencia', id_licencia=l.id_licencia) }}" method="POST">
+                            <button class="btn btn-sm btn-danger" type="submit" onclick="return confirm('¿Eliminar licencia?');">Eliminar</button>
+                        </form>
+                        <dialog class="chronos-dialog" id="editar-licencia-{{ l.id_licencia }}">
+                            <form class="chronos-form chronos-form-stacked" action="{{ url_for('licenses.html_update_licencia', id_licencia=l.id_licencia) }}" method="POST">
+                                <h2>Editar licencia #{{ l.id_licencia }}</h2>
+                                <label>Usuario<select name="id_usuario" required>
+                                    {% for u in usuarios_por_licencia[l.id_licencia] %}<option value="{{ u.id_usuario }}" {% if u.id_usuario == l.id_usuario %}selected{% endif %}>{{ u.username }} (#{{ u.id_usuario }})</option>{% endfor %}
+                                </select></label>
+                                <label>Tipo<select name="tipo_licencia" required>
+                                    {% for tipo in tipos_licencia %}<option value="{{ tipo }}" {% if tipo == l.tipo_licencia %}selected{% endif %}>{{ tipo }}</option>{% endfor %}
+                                </select></label>
+                                <label>Código de activación<input type="text" name="codigo_activacion" value="{{ l.codigo_activacion }}" required></label>
+                                <label>Estado<select name="estado" required>
+                                    {% for estado in estados_licencia %}<option value="{{ estado }}" {% if estado == l.estado %}selected{% endif %}>{{ estado }}</option>{% endfor %}
+                                </select></label>
+                                <div class="chronos-dialog-actions">
+                                    <button class="btn btn-accent" type="submit">Guardar cambios</button>
+                                    <button class="btn btn-secondary" type="button" onclick="this.closest('dialog').close()">Cancelar</button>
+                                </div>
+                            </form>
+                        </dialog>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="chronos-empty">No hay licencias registradas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<dialog class="chronos-dialog" id="crear-licencia">
+    <form class="chronos-form chronos-form-stacked" action="{{ url_for('licenses.html_create_licencia') }}" method="POST">
+        <h2>Crear licencia</h2>
+        <label>Usuario<select name="id_usuario" required>
+            {% for u in usuarios_disponibles %}<option value="{{ u.id_usuario }}">{{ u.username }} (#{{ u.id_usuario }})</option>{% endfor %}
+        </select></label>
+        <label>Tipo<select name="tipo_licencia" required>
+            {% for tipo in tipos_licencia %}<option value="{{ tipo }}">{{ tipo }}</option>{% endfor %}
+        </select></label>
+        <label>Código de activación<input type="text" name="codigo_activacion" placeholder="Se genera automáticamente si se deja vacío"></label>
+        <div class="chronos-dialog-actions">
+            <button class="btn btn-primary" type="submit" {% if not usuarios_disponibles %}disabled{% endif %}>Crear licencia</button>
+            <button class="btn btn-secondary" type="button" onclick="this.closest('dialog').close()">Cancelar</button>
+        </div>
+        {% if not usuarios_disponibles %}<p class="chronos-empty">No hay usuarios sin licencia activa disponibles.</p>{% endif %}
+    </form>
+</dialog>
+{% endblock %}

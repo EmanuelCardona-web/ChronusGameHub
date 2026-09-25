@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Chronos Gaming Hub{% endblock %}
+
+{% block content %}
+<section class="chronos-welcome">
+    <p class="chronos-eyebrow">Plataforma de gestión de videojuegos</p>
+    <h1>Chronos Gaming Hub <span>&amp; Cloud Services</span></h1>
+    <p class="chronos-welcome-lead">Una plataforma web y servicio backend para gestionar de forma centralizada cuentas, licencias digitales, puntuaciones globales, insignias y partidas guardadas en la nube.</p>
+    <p class="chronos-welcome-detail">Chronos sincroniza el estado y el progreso de los jugadores en un entorno seguro y escalable, y permite restaurar estados históricos sin acoplar la infraestructura de gestión al motor del videojuego.</p>
+    <a class="btn btn-primary" href="{{ url_for('users.admin_usuarios') }}">Entrar a administraciones</a>
+</section>
+{% endblock %}

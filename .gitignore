@@ -1,0 +1,32 @@
+# Private environment and key files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+/secrets/
+
+# Python virtual environments and generated files
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Local databases, Flask instance data, and logs
+/instance/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# Test and coverage output
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Operating system files
+.DS_Store
+Thumbs.db

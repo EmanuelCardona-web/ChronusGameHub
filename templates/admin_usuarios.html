@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Administración de usuarios · Chronos{% endblock %}
+
+{% block content %}
+<section class="chronos-panel">
+    <h1 class="chronos-title">Administración de <span class="accent">usuarios</span></h1>
+    <p class="chronos-subtitle">{{ usuarios|length }} registros</p>
+</section>
+
+<section class="chronos-table-panel">
+    <div class="chronos-table-heading">
+        <h2>Usuarios</h2>
+        <button class="btn btn-primary" type="button" onclick="document.getElementById('crear-usuario').showModal()">Crear nuevo usuario</button>
+    </div>
+    <div class="chronos-table-scroll">
+        <table class="chronos-table">
+            <thead>
+                <tr><th>ID</th><th>Username</th><th>Email</th><th>Registro</th><th>Puntos</th><th>Documento</th><th>Número</th><th>Acciones</th></tr>
+            </thead>
+            <tbody>
+                {% for u in usuarios %}
+                <tr>
+                    <td>{{ u.id_usuario }}</td>
+                    <td>{{ u.username }}</td>
+                    <td>{{ u.email }}</td>
+                    <td>{{ u.fecha_registro.strftime('%Y-%m-%d') if u.fecha_registro else '-' }}</td>
+                    <td>{{ u.puntos_totales }}</td>
+                    <td>{{ u.tipo_documento or '-' }}</td>
+                    <td>{{ u.numero_documento or '-' }}</td>
+                    <td class="chronos-actions">
+                        <button class="btn btn-sm btn-accent" type="button" onclick="document.getElementById('editar-usuario-{{ u.id_usuario }}').showModal()">Editar</button>
+                        <form class="chronos-inline-form" action="{{ url_for('users.html_delete_usuario', id_usuario=u.id_usuario) }}" method="POST">
+                            <button class="btn btn-sm btn-danger" type="submit" onclick="return confirm('¿Eliminar usuario?');">Eliminar</button>
+                        </form>
+                        <dialog class="chronos-dialog" id="editar-usuario-{{ u.id_usuario }}">
+                            <form class="chronos-form chronos-form-stacked" action="{{ url_for('users.html_update_usuario', id_usuario=u.id_usuario) }}" method="POST">
+                                <h2>Editar usuario #{{ u.id_usuario }}</h2>
+                                <label>Username<input type="text" name="username" value="{{ u.username }}" required></label>
+                                <label>Email<input type="email" name="email" value="{{ u.email }}" required></label>
+                                <label>Puntos<input type="number" name="puntos_totales" value="{{ u.puntos_totales }}" min="0"></label>
+                                <label>Tipo de documento<select name="tipo_documento">
+                                    <option value="" {% if not u.tipo_documento %}selected{% endif %}>Sin seleccionar</option>
+                                    {% for tipo in tipos_documento %}<option value="{{ tipo }}" {% if tipo == u.tipo_documento %}selected{% endif %}>{{ tipo }}</option>{% endfor %}
+                                </select></label>
+                                <label>Número de documento<input type="text" name="numero_documento" value="{{ u.numero_documento or '' }}"></label>
+                                <div class="chronos-dialog-actions">
+                                    <button class="btn btn-accent" type="submit">Guardar cambios</button>
+                                    <button class="btn btn-secondary" type="button" onclick="this.closest('dialog').close()">Cancelar</button>
+                                </div>
+                            </form>
+                        </dialog>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="chronos-empty">No hay usuarios registrados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<dialog class="chronos-dialog" id="crear-usuario">
+    <form class="chronos-form chronos-form-stacked" action="{{ url_for('users.html_create_usuario') }}" method="POST">
+        <h2>Crear usuario</h2>
+        <label>Username<input type="text" name="username" required></label>
+        <label>Email<input type="email" name="email" required></label>
+        <label>Puntos<input type="number" name="puntos_totales" value="0" min="0"></label>
+        <label>Tipo de documento<select name="tipo_documento">
+            <option value="" selected>Sin seleccionar</option>
+            {% for tipo in tipos_documento %}<option value="{{ tipo }}">{{ tipo }}</option>{% endfor %}
+        </select></label>
+        <label>Número de documento<input type="text" name="numero_documento"></label>
+        <div class="chronos-dialog-actions">
+            <button class="btn btn-primary" type="submit">Crear usuario</button>
+            <button class="btn btn-secondary" type="button" onclick="this.closest('dialog').close()">Cancelar</button>
+        </div>
+    </form>
+</dialog>
+{% endblock %}
