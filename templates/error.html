@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Error {{ code }} · Chronos Gaming Hub{% endblock %}
+
+{% macro error_body() %}
+<section class="error-page">
+    <p class="error-code gradient-text">{{ code }}</p>
+    <p>{{ message }}</p>
+    <a class="btn btn-primary" href="{{ url_for('index') }}">Volver al inicio</a>
+</section>
+{% endmacro %}
+
+{% block content %}{{ error_body() }}{% endblock %}
+{% block public_content %}{{ error_body() }}{% endblock %}

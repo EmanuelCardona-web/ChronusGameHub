@@ -1,12 +1,63 @@
 {% extends "base.html" %}
-{% block title %}Chronos Gaming Hub{% endblock %}
+{% from "_macros.html" import icon %}
+{% block title %}Chronos Gaming Hub &amp; Cloud Services{% endblock %}
 
-{% block content %}
-<section class="chronos-welcome">
-    <p class="chronos-eyebrow">Plataforma de gestión de videojuegos</p>
-    <h1>Chronos Gaming Hub <span>&amp; Cloud Services</span></h1>
-    <p class="chronos-welcome-lead">Una plataforma web y servicio backend para gestionar de forma centralizada cuentas, licencias digitales, puntuaciones globales, insignias y partidas guardadas en la nube.</p>
-    <p class="chronos-welcome-detail">Chronos sincroniza el estado y el progreso de los jugadores en un entorno seguro y escalable, y permite restaurar estados históricos sin acoplar la infraestructura de gestión al motor del videojuego.</p>
-    <a class="btn btn-primary" href="{{ url_for('users.admin_usuarios') }}">Entrar a administraciones</a>
+{% block public_content %}
+<section class="hero">
+    <div>
+        <span class="eyebrow">{{ icon('gamepad') }} Plataforma de gestión de videojuegos</span>
+        <h1>Tu progreso, tus licencias y tus logros, <span class="gradient-text">en un solo lugar</span>.</h1>
+        <p class="hero-lead">Chronos centraliza cuentas, licencias digitales, puntuaciones, insignias y partidas guardadas en la nube, con restauración de estados históricos y sin acoplarse al motor del juego.</p>
+        <div class="hero-actions">
+            <a class="btn btn-primary btn-lg" href="{{ url_for('auth.register') }}">Crear cuenta gratis {{ icon('arrow-right') }}</a>
+            <a class="btn btn-secondary btn-lg" href="{{ url_for('auth.login') }}">Ya tengo cuenta</a>
+        </div>
+        <p class="hero-note">{{ icon('shield') }} Autenticación segura con Auth0 &middot; Datos en PostgreSQL</p>
+    </div>
+
+    <div class="hero-visual" aria-hidden="true">
+        <p class="preview-title">Tu biblioteca</p>
+        <div class="preview-row">
+            <div class="preview-game"><span class="preview-thumb">{{ icon('gamepad') }}</span><div><strong>Chronos Legends</strong><p class="muted">Pase de temporada</p></div></div>
+            <span class="badge badge-success">Activa</span>
+        </div>
+        <div class="preview-row">
+            <div class="preview-game"><span class="preview-thumb">{{ icon('cloud') }}</span><div><strong>Guardado #12</strong><p class="muted">Nivel 34 &middot; hace 2 h</p></div></div>
+            <span class="badge badge-primary badge-plain">Restaurable</span>
+        </div>
+        <div class="preview-row">
+            <div class="preview-game"><span class="preview-thumb">{{ icon('trophy') }}</span><div><strong>Maestro del tiempo</strong><p class="muted">Insignia desbloqueada</p></div></div>
+            <span class="badge badge-plain">+250 pts</span>
+        </div>
+    </div>
+</section>
+
+<section>
+    <div class="section-heading">
+        <h2>Todo lo que tu comunidad necesita</h2>
+        <p>Servicios de backend listos para conectar con cualquier videojuego.</p>
+    </div>
+    <div class="features">
+        <article class="feature">
+            <span class="feature-icon">{{ icon('key') }}</span>
+            <h3>Licencias digitales</h3>
+            <p>Emisión, activación y control de estado de licencias estándar, premium y pases de temporada.</p>
+        </article>
+        <article class="feature">
+            <span class="feature-icon">{{ icon('cloud') }}</span>
+            <h3>Guardado en la nube</h3>
+            <p>Snapshots restaurables de cada partida (patrón Memento) disponibles desde cualquier dispositivo.</p>
+        </article>
+        <article class="feature">
+            <span class="feature-icon">{{ icon('trophy') }}</span>
+            <h3>Insignias y puntos</h3>
+            <p>Logros otorgados automáticamente ante eventos del juego (patrón Observer).</p>
+        </article>
+        <article class="feature">
+            <span class="feature-icon">{{ icon('shield') }}</span>
+            <h3>Seguridad de nivel empresarial</h3>
+            <p>Inicio de sesión y registro gestionados por Auth0, con verificación de correo y MFA opcional.</p>
+        </article>
+    </div>
 </section>
 {% endblock %}

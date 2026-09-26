@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}Acceder · Chronos Gaming Hub{% endblock %}
+
+{% block public_content %}
+<div class="auth-wrap">
+    <div class="auth-card">
+        <aside class="auth-aside">
+            <div>
+                <h2>Bienvenido a Chronos</h2>
+                <p>Una sola cuenta para tus licencias, tus partidas guardadas y tus logros.</p>
+            </div>
+            <ul class="check-list">
+                <li>{{ icon('check') }} Sincroniza tu progreso en la nube</li>
+                <li>{{ icon('check') }} Gestiona tus licencias digitales</li>
+                <li>{{ icon('check') }} Desbloquea insignias y suma puntos</li>
+            </ul>
+        </aside>
+
+        <div class="auth-body">
+            <div>
+                <h1>Accede a tu cuenta</h1>
+                <p class="muted">Serás redirigido a la página segura de Auth0 para continuar.</p>
+            </div>
+
+            <div class="auth-actions">
+                <a class="btn btn-primary btn-lg btn-block" href="{{ url_for('auth.login') }}">{{ icon('login') }} Iniciar sesión</a>
+                <div class="divider">¿Eres nuevo?</div>
+                <a class="btn btn-secondary btn-lg btn-block" href="{{ url_for('auth.register') }}">{{ icon('user-plus') }} Crear una cuenta</a>
+            </div>
+
+            <p class="auth-legal">{{ icon('lock') }} Tus credenciales nunca pasan por nuestros servidores: Auth0 las gestiona y protege.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

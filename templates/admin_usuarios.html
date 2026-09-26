@@ -1,78 +1,121 @@
 {% extends "base.html" %}
-{% block title %}Administración de usuarios · Chronos{% endblock %}
+{% from "_macros.html" import icon, avatar, csrf_field %}
+{% block title %}Usuarios · Chronos Gaming Hub{% endblock %}
+{% block topbar_title %}Administración / Usuarios{% endblock %}
+
+{% macro usuario_fields(u=None) %}
+<div class="form-row">
+    <div class="field">
+        <label class="field-label">Username
+            <input class="input" type="text" name="username" value="{{ u.username if u else '' }}" maxlength="80" required>
+        </label>
+    </div>
+    <div class="field">
+        <label class="field-label">Puntos
+            <input class="input" type="number" name="puntos_totales" value="{{ u.puntos_totales if u else 0 }}" min="0">
+        </label>
+    </div>
+</div>
+<div class="field">
+    <label class="field-label">Email
+        <input class="input" type="email" name="email" value="{{ u.email if u else '' }}" maxlength="120" required>
+    </label>
+</div>
+<div class="form-row">
+    <div class="field">
+        <label class="field-label">Tipo de documento
+            <select class="select" name="tipo_documento">
+                <option value="" {{ 'selected' if not (u and u.tipo_documento) }}>Sin seleccionar</option>
+                {% for tipo in tipos_documento %}<option value="{{ tipo }}" {{ 'selected' if u and tipo == u.tipo_documento }}>{{ tipo }}</option>{% endfor %}
+            </select>
+        </label>
+    </div>
+    <div class="field">
+        <label class="field-label">Número de documento
+            <input class="input" type="text" name="numero_documento" value="{{ u.numero_documento if u and u.numero_documento else '' }}" inputmode="numeric" maxlength="15">
+        </label>
+    </div>
+</div>
+{% endmacro %}
 
 {% block content %}
-<section class="chronos-panel">
-    <h1 class="chronos-title">Administración de <span class="accent">usuarios</span></h1>
-    <p class="chronos-subtitle">{{ usuarios|length }} registros</p>
-</section>
-
-<section class="chronos-table-panel">
-    <div class="chronos-table-heading">
-        <h2>Usuarios</h2>
-        <button class="btn btn-primary" type="button" onclick="document.getElementById('crear-usuario').showModal()">Crear nuevo usuario</button>
+<div class="page-header">
+    <div>
+        <p class="breadcrumb">Administración</p>
+        <h1>Usuarios</h1>
+        <p>{{ usuarios|length }} {{ 'usuario registrado' if usuarios|length == 1 else 'usuarios registrados' }}</p>
     </div>
-    <div class="chronos-table-scroll">
-        <table class="chronos-table">
+    <button class="btn btn-primary" type="button" data-open-dialog="crear-usuario">{{ icon('plus') }} Nuevo usuario</button>
+</div>
+
+<section class="card">
+    <div class="card-header">
+        <h2>Listado</h2>
+        <label class="search">
+            <span class="sr-only">Buscar usuarios</span>
+            {{ icon('search') }}
+            <input class="input" type="search" placeholder="Buscar por nombre, email o documento" data-table-filter="tabla-usuarios">
+        </label>
+    </div>
+    <div class="table-scroll">
+        <table class="table" id="tabla-usuarios">
             <thead>
-                <tr><th>ID</th><th>Username</th><th>Email</th><th>Registro</th><th>Puntos</th><th>Documento</th><th>Número</th><th>Acciones</th></tr>
+                <tr><th>Usuario</th><th>Documento</th><th>Registro</th><th class="num">Puntos</th><th>Auth0</th><th class="num">Acciones</th></tr>
             </thead>
             <tbody>
                 {% for u in usuarios %}
                 <tr>
-                    <td>{{ u.id_usuario }}</td>
-                    <td>{{ u.username }}</td>
-                    <td>{{ u.email }}</td>
-                    <td>{{ u.fecha_registro.strftime('%Y-%m-%d') if u.fecha_registro else '-' }}</td>
-                    <td>{{ u.puntos_totales }}</td>
-                    <td>{{ u.tipo_documento or '-' }}</td>
-                    <td>{{ u.numero_documento or '-' }}</td>
-                    <td class="chronos-actions">
-                        <button class="btn btn-sm btn-accent" type="button" onclick="document.getElementById('editar-usuario-{{ u.id_usuario }}').showModal()">Editar</button>
-                        <form class="chronos-inline-form" action="{{ url_for('users.html_delete_usuario', id_usuario=u.id_usuario) }}" method="POST">
-                            <button class="btn btn-sm btn-danger" type="submit" onclick="return confirm('¿Eliminar usuario?');">Eliminar</button>
-                        </form>
-                        <dialog class="chronos-dialog" id="editar-usuario-{{ u.id_usuario }}">
-                            <form class="chronos-form chronos-form-stacked" action="{{ url_for('users.html_update_usuario', id_usuario=u.id_usuario) }}" method="POST">
-                                <h2>Editar usuario #{{ u.id_usuario }}</h2>
-                                <label>Username<input type="text" name="username" value="{{ u.username }}" required></label>
-                                <label>Email<input type="email" name="email" value="{{ u.email }}" required></label>
-                                <label>Puntos<input type="number" name="puntos_totales" value="{{ u.puntos_totales }}" min="0"></label>
-                                <label>Tipo de documento<select name="tipo_documento">
-                                    <option value="" {% if not u.tipo_documento %}selected{% endif %}>Sin seleccionar</option>
-                                    {% for tipo in tipos_documento %}<option value="{{ tipo }}" {% if tipo == u.tipo_documento %}selected{% endif %}>{{ tipo }}</option>{% endfor %}
-                                </select></label>
-                                <label>Número de documento<input type="text" name="numero_documento" value="{{ u.numero_documento or '' }}"></label>
-                                <div class="chronos-dialog-actions">
-                                    <button class="btn btn-accent" type="submit">Guardar cambios</button>
-                                    <button class="btn btn-secondary" type="button" onclick="this.closest('dialog').close()">Cancelar</button>
-                                </div>
+                    <td><div class="cell-user">{{ avatar(u.username, cls='avatar-sm') }}<div><strong>{{ u.username }}</strong><span>{{ u.email }}</span></div></div></td>
+                    <td>{% if u.tipo_documento %}{{ u.tipo_documento }} <span class="muted">{{ u.numero_documento or '' }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+                    <td class="muted">{{ u.fecha_registro.strftime('%d/%m/%Y') if u.fecha_registro else '—' }}</td>
+                    <td class="num">{{ u.puntos_totales }}</td>
+                    <td>{% if u.auth0_sub %}<span class="badge badge-success">Vinculado</span>{% else %}<span class="badge">Local</span>{% endif %}</td>
+                    <td>
+                        <div class="row-actions">
+                            <button class="btn btn-ghost btn-sm" type="button" data-open-dialog="editar-usuario-{{ u.id_usuario }}" aria-label="Editar {{ u.username }}">{{ icon('edit') }} Editar</button>
+                            <form action="{{ url_for('users.html_delete_usuario', id_usuario=u.id_usuario) }}" method="POST" data-confirm="¿Eliminar a {{ u.username }}? Se borrarán también sus licencias, guardados e insignias.">
+                                {{ csrf_field() }}
+                                <button class="btn btn-danger-ghost btn-sm" type="submit" aria-label="Eliminar {{ u.username }}">{{ icon('trash') }}</button>
                             </form>
-                        </dialog>
+                        </div>
                     </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="8" class="chronos-empty">No hay usuarios registrados.</td></tr>
+                <tr><td colspan="6"><div class="empty-state">{{ icon('users') }}<strong>No hay usuarios</strong>Crea el primero con el botón «Nuevo usuario».</div></td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </section>
 
-<dialog class="chronos-dialog" id="crear-usuario">
-    <form class="chronos-form chronos-form-stacked" action="{{ url_for('users.html_create_usuario') }}" method="POST">
-        <h2>Crear usuario</h2>
-        <label>Username<input type="text" name="username" required></label>
-        <label>Email<input type="email" name="email" required></label>
-        <label>Puntos<input type="number" name="puntos_totales" value="0" min="0"></label>
-        <label>Tipo de documento<select name="tipo_documento">
-            <option value="" selected>Sin seleccionar</option>
-            {% for tipo in tipos_documento %}<option value="{{ tipo }}">{{ tipo }}</option>{% endfor %}
-        </select></label>
-        <label>Número de documento<input type="text" name="numero_documento"></label>
-        <div class="chronos-dialog-actions">
+{% for u in usuarios %}
+<dialog class="dialog" id="editar-usuario-{{ u.id_usuario }}" aria-labelledby="editar-usuario-{{ u.id_usuario }}-titulo">
+    <form action="{{ url_for('users.html_update_usuario', id_usuario=u.id_usuario) }}" method="POST">
+        {{ csrf_field() }}
+        <div class="dialog-header">
+            <h2 id="editar-usuario-{{ u.id_usuario }}-titulo">Editar usuario #{{ u.id_usuario }}</h2>
+            <button class="btn btn-ghost btn-icon" type="button" data-close-dialog aria-label="Cerrar">{{ icon('x') }}</button>
+        </div>
+        <div class="dialog-body form">{{ usuario_fields(u) }}</div>
+        <div class="dialog-footer">
+            <button class="btn btn-secondary" type="button" data-close-dialog>Cancelar</button>
+            <button class="btn btn-primary" type="submit">Guardar cambios</button>
+        </div>
+    </form>
+</dialog>
+{% endfor %}
+
+<dialog class="dialog" id="crear-usuario" aria-labelledby="crear-usuario-titulo">
+    <form action="{{ url_for('users.html_create_usuario') }}" method="POST">
+        {{ csrf_field() }}
+        <div class="dialog-header">
+            <h2 id="crear-usuario-titulo">Nuevo usuario</h2>
+            <button class="btn btn-ghost btn-icon" type="button" data-close-dialog aria-label="Cerrar">{{ icon('x') }}</button>
+        </div>
+        <div class="dialog-body form">{{ usuario_fields() }}</div>
+        <div class="dialog-footer">
+            <button class="btn btn-secondary" type="button" data-close-dialog>Cancelar</button>
             <button class="btn btn-primary" type="submit">Crear usuario</button>
-            <button class="btn btn-secondary" type="button" onclick="this.closest('dialog').close()">Cancelar</button>
         </div>
     </form>
 </dialog>

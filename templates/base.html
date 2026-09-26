@@ -1,49 +1,114 @@
+{% from "_macros.html" import icon, avatar, csrf_field %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="description" content="Chronos Gaming Hub & Cloud Services: cuentas, licencias, insignias y partidas guardadas en la nube.">
     <title>{% block title %}Chronos Gaming Hub{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-    <header class="chronos-header">
-        <div class="chronos-logo">
-            <span class="chronos-logo-icon">⌗</span>
-            <span>CHRONOS <span class="accent">GAMING HUB</span></span>
+{% include "_icons.html" %}
+
+{% macro flashes() %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-stack" role="status" aria-live="polite">
+            {% for category, message in messages %}
+            <div class="flash flash-{{ category }}" data-flash>
+                {{ icon('check-circle' if category == 'success' else 'alert') }}
+                <span class="flash-message">{{ message }}</span>
+                <button class="flash-close" type="button" data-flash-close aria-label="Cerrar aviso">{{ icon('x') }}</button>
+            </div>
+            {% endfor %}
         </div>
-        <nav class="chronos-nav">
-            <details class="chronos-nav-dropdown">
-                <summary>Administraciones</summary>
-                <div class="chronos-nav-menu">
-                    <a href="{{ url_for('users.admin_usuarios') }}">Usuarios</a>
-                    <a href="{{ url_for('licenses.admin_licencias') }}">Licencias</a>
+        {% endif %}
+    {% endwith %}
+{% endmacro %}
+
+{% if current_user %}
+{% set endpoint = request.endpoint or '' %}
+<div class="app-shell" data-app-shell>
+    <aside class="sidebar" id="sidebar">
+        <a class="brand" href="{{ url_for('dashboard') }}">
+            <span class="brand-mark">{{ icon('logo') }}</span>
+            <span class="brand-name">Chronos<small>Gaming Hub</small></span>
+        </a>
+
+        <nav class="nav-section" aria-label="Principal">
+            <span class="nav-label">General</span>
+            <a class="nav-link {{ 'is-active' if endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}">{{ icon('grid') }} Panel</a>
+        </nav>
+
+        {% if is_admin %}
+        <nav class="nav-section" aria-label="Administración">
+            <span class="nav-label">Administración</span>
+            <a class="nav-link {{ 'is-active' if endpoint == 'users.admin_usuarios' }}" href="{{ url_for('users.admin_usuarios') }}">{{ icon('users') }} Usuarios</a>
+            <a class="nav-link {{ 'is-active' if endpoint == 'licenses.admin_licencias' }}" href="{{ url_for('licenses.admin_licencias') }}">{{ icon('key') }} Licencias</a>
+        </nav>
+        {% endif %}
+
+        <div class="sidebar-footer">
+            <strong>{{ 'Administrador' if is_admin else 'Jugador' }}</strong>
+            Sesión protegida con Auth0
+        </div>
+    </aside>
+
+    <div class="app-main">
+        <header class="topbar">
+            <div class="topbar-title">
+                <button class="btn btn-ghost btn-icon menu-toggle" type="button" data-sidebar-toggle aria-controls="sidebar" aria-label="Abrir menú">{{ icon('menu') }}</button>
+                {% block topbar_title %}{% endblock %}
+            </div>
+            <details class="user-menu">
+                <summary>
+                    {{ avatar(current_user.name, current_user.picture) }}
+                    <span class="user-name">{{ current_user.name }}</span>
+                </summary>
+                <div class="user-menu-panel">
+                    <div class="user-menu-head">
+                        <strong>{{ current_user.name }}</strong>
+                        <span>{{ current_user.email }}</span>
+                    </div>
+                    <form action="{{ url_for('auth.logout') }}" method="POST">
+                        {{ csrf_field() }}
+                        <button class="btn btn-ghost" type="submit">{{ icon('logout') }} Cerrar sesión</button>
+                    </form>
                 </div>
             </details>
-            <a href="{{ url_for('auth.login') }}">Iniciar sesión</a>
-            <a href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
-        </nav>
-    </header>
+        </header>
 
-    <main class="chronos-main">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="chronos-flash-stack">
-                    {% for category, message in messages %}
-                        <div class="chronos-flash chronos-flash-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
+        <main class="content" id="contenido">
+            {{ flashes() }}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</div>
+{% else %}
+<header class="public-header">
+    <a class="brand" href="{{ url_for('index') }}">
+        <span class="brand-mark">{{ icon('logo') }}</span>
+        <span class="brand-name">Chronos<small>Gaming Hub</small></span>
+    </a>
+    <nav class="public-nav" aria-label="Cuenta">
+        <a class="btn btn-ghost" href="{{ url_for('auth.login') }}">Iniciar sesión</a>
+        <a class="btn btn-primary" href="{{ url_for('auth.register') }}">Crear cuenta</a>
+    </nav>
+</header>
 
-        {% block content %}{% endblock %}
-    </main>
+<main class="public-main" id="contenido">
+    {{ flashes() }}
+    {% block public_content %}{% endblock %}
+</main>
 
-    <footer class="chronos-footer">
-        <p>Chronos Gaming Hub &amp; Cloud Services &mdash; Arquitectura de Software II</p>
-    </footer>
+<footer class="public-footer">
+    Chronos Gaming Hub &amp; Cloud Services &middot; Arquitectura de Software II
+</footer>
+{% endif %}
 
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    {% block scripts %}{% endblock %}
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
 </body>
 </html>

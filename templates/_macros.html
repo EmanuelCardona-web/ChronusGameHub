@@ -1,0 +1,21 @@
+{% macro icon(name, cls="") -%}
+<svg class="icon {{ cls }}" aria-hidden="true"><use href="#i-{{ name }}"></use></svg>
+{%- endmacro %}
+
+{% macro avatar(name, picture=None, cls="") -%}
+{% if picture %}<img class="avatar {{ cls }}" src="{{ picture }}" alt="" referrerpolicy="no-referrer">
+{% else %}<span class="avatar {{ cls }}" aria-hidden="true">{{ (name or "?")[:2] }}</span>{% endif %}
+{%- endmacro %}
+
+{% macro estado_badge(estado) -%}
+{% set clases = {"ACTIVA": "badge-success", "EXPIRADA": "badge-warning", "SUSPENDIDA": "badge-danger"} %}
+<span class="badge {{ clases.get(estado, '') }}">{{ estado|capitalize }}</span>
+{%- endmacro %}
+
+{% macro tipo_badge(tipo) -%}
+<span class="badge badge-plain {{ 'badge-primary' if tipo != 'ESTANDAR' else '' }}">{{ tipo|replace('_', ' ')|capitalize }}</span>
+{%- endmacro %}
+
+{% macro csrf_field() -%}
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{%- endmacro %}

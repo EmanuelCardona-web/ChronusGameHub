@@ -1,15 +1,22 @@
 // ==========================================================
 // Chronos Gaming Hub & Cloud Services - main.js
-// Helpers para consumir la API JSON REST (/api/usuarios, /api/licencias)
-// desde el frontend, además de las vistas HTML server-rendered.
+// Interacciones de la interfaz (diálogos, confirmaciones, filtros,
+// menú lateral) y helpers para consumir la API JSON REST.
+// Sin manejadores inline: compatible con la Content-Security-Policy.
 // ==========================================================
 
 const API_BASE = "";
+const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.content || "";
 
 async function apiRequest(path, options = {}) {
     const response = await fetch(`${API_BASE}${path}`, {
-        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         ...options,
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": CSRF_TOKEN,
+            ...(options.headers || {}),
+        },
     });
 
     if (!response.ok) {
@@ -42,7 +49,64 @@ const LicenciasAPI = {
 // Expone las utilidades en la consola del navegador para pruebas rápidas.
 window.Chronos = { UsuariosAPI, LicenciasAPI };
 
+// ---------------- Interfaz ----------------
+document.addEventListener("click", (event) => {
+    const opener = event.target.closest("[data-open-dialog]");
+    if (opener) {
+        document.getElementById(opener.dataset.openDialog)?.showModal();
+        return;
+    }
+
+    if (event.target.closest("[data-close-dialog]")) {
+        event.target.closest("dialog")?.close();
+        return;
+    }
+
+    // Clic en el fondo del diálogo lo cierra.
+    if (event.target instanceof HTMLDialogElement) {
+        event.target.close();
+        return;
+    }
+
+    const flashClose = event.target.closest("[data-flash-close]");
+    if (flashClose) {
+        flashClose.closest("[data-flash]")?.remove();
+        return;
+    }
+
+    if (event.target.closest("[data-sidebar-toggle]")) {
+        document.querySelector("[data-app-shell]")?.classList.toggle("sidebar-open");
+        return;
+    }
+
+    // Cierra el menú de usuario y el lateral al hacer clic fuera.
+    document.querySelectorAll(".user-menu[open]").forEach((menu) => {
+        if (!menu.contains(event.target)) menu.removeAttribute("open");
+    });
+    const shell = document.querySelector("[data-app-shell].sidebar-open");
+    if (shell && !event.target.closest(".sidebar")) shell.classList.remove("sidebar-open");
+});
+
+document.addEventListener("submit", (event) => {
+    const message = event.target.dataset.confirm;
+    if (message && !window.confirm(message)) event.preventDefault();
+});
+
+document.addEventListener("input", (event) => {
+    const tableId = event.target.dataset.tableFilter;
+    if (!tableId) return;
+    const term = event.target.value.trim().toLowerCase();
+    document.querySelectorAll(`#${tableId} tbody tr`).forEach((row) => {
+        row.hidden = term !== "" && !row.textContent.toLowerCase().includes(term);
+    });
+});
+
 document.addEventListener("DOMContentLoaded", () => {
-    console.log("%cChronos Gaming Hub & Cloud Services", "color:#00f0ff;font-weight:bold;");
-    console.log("API disponible en window.Chronos.UsuariosAPI / window.Chronos.LicenciasAPI");
+    // Los avisos de éxito se ocultan solos; los errores permanecen hasta cerrarlos.
+    document.querySelectorAll(".flash-success[data-flash]").forEach((flash) => {
+        setTimeout(() => {
+            flash.classList.add("is-hidden");
+            setTimeout(() => flash.remove(), 300);
+        }, 5000);
+    });
 });

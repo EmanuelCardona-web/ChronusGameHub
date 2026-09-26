@@ -4,15 +4,24 @@ license_routes.py
 CRUD completo de `licencias_juego`, expuesto como:
   - API JSON REST bajo /api/licencias
   - Vistas HTML (formularios) bajo /licencias
+Todas las rutas requieren una sesión con rol de administrador.
 """
 
 import uuid
 
 from flask import Blueprint, jsonify, request, redirect, url_for, flash, render_template
+from sqlalchemy.exc import IntegrityError
 
 from models import db, LicenciaJuego, TipoLicencia, EstadoLicencia, Usuario
+from security import admin_required
 
 license_bp = Blueprint("licenses", __name__)
+
+CODIGO_DUPLICADO_MSG = "Ya existe una licencia con ese código de activación."
+
+
+def _usuario_existe(id_usuario):
+    return id_usuario is not None and db.session.get(Usuario, id_usuario) is not None
 
 
 def _has_other_active_license(id_usuario, exclude_id=None):
@@ -29,20 +38,23 @@ def _has_other_active_license(id_usuario, exclude_id=None):
 # API JSON REST
 # ---------------------------------------------------------------------
 @license_bp.route("/api/licencias", methods=["GET"])
+@admin_required
 def api_list_licencias():
     licencias = LicenciaJuego.query.order_by(LicenciaJuego.id_licencia).all()
     return jsonify([l.to_dict() for l in licencias])
 
 
 @license_bp.route("/api/licencias/<int:id_licencia>", methods=["GET"])
+@admin_required
 def api_get_licencia(id_licencia):
-    licencia = LicenciaJuego.query.get_or_404(id_licencia)
+    licencia = db.get_or_404(LicenciaJuego, id_licencia)
     return jsonify(licencia.to_dict())
 
 
 @license_bp.route("/api/licencias", methods=["POST"])
+@admin_required
 def api_create_licencia():
-    data = request.get_json(force=True)
+    data = request.get_json(silent=True) or {}
 
     tipo_licencia = data.get("tipo_licencia", TipoLicencia.ESTANDAR)
     if tipo_licencia not in TipoLicencia.ALL:
@@ -50,7 +62,7 @@ def api_create_licencia():
 
     id_usuario = data.get("id_usuario")
     estado = data.get("estado", EstadoLicencia.ACTIVA)
-    if not Usuario.query.get(id_usuario):
+    if not _usuario_existe(id_usuario):
         return jsonify({"error": "El usuario indicado no existe."}), 400
     if estado not in EstadoLicencia.ALL:
         return jsonify({"error": f"estado inválido. Use uno de {EstadoLicencia.ALL}"}), 400
@@ -64,14 +76,19 @@ def api_create_licencia():
         estado=estado,
     )
     db.session.add(licencia)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"error": CODIGO_DUPLICADO_MSG}), 409
     return jsonify(licencia.to_dict()), 201
 
 
 @license_bp.route("/api/licencias/<int:id_licencia>", methods=["PUT", "PATCH"])
+@admin_required
 def api_update_licencia(id_licencia):
-    licencia = LicenciaJuego.query.get_or_404(id_licencia)
-    data = request.get_json(force=True)
+    licencia = db.get_or_404(LicenciaJuego, id_licencia)
+    data = request.get_json(silent=True) or {}
     id_usuario = data.get("id_usuario", licencia.id_usuario)
     estado = data.get("estado", licencia.estado)
 
@@ -80,7 +97,7 @@ def api_update_licencia(id_licencia):
     tipo_licencia = data.get("tipo_licencia", licencia.tipo_licencia)
     if tipo_licencia not in TipoLicencia.ALL:
         return jsonify({"error": f"tipo_licencia inválido. Use uno de {TipoLicencia.ALL}"}), 400
-    if "id_usuario" in data and not Usuario.query.get(id_usuario):
+    if "id_usuario" in data and not _usuario_existe(id_usuario):
         return jsonify({"error": "El usuario indicado no existe."}), 400
     if estado == EstadoLicencia.ACTIVA and _has_other_active_license(
         id_usuario, exclude_id=licencia.id_licencia
@@ -93,13 +110,18 @@ def api_update_licencia(id_licencia):
     if "codigo_activacion" in data:
         licencia.codigo_activacion = data["codigo_activacion"]
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"error": CODIGO_DUPLICADO_MSG}), 409
     return jsonify(licencia.to_dict())
 
 
 @license_bp.route("/api/licencias/<int:id_licencia>", methods=["DELETE"])
+@admin_required
 def api_delete_licencia(id_licencia):
-    licencia = LicenciaJuego.query.get_or_404(id_licencia)
+    licencia = db.get_or_404(LicenciaJuego, id_licencia)
     db.session.delete(licencia)
     db.session.commit()
     return jsonify({"message": "Licencia eliminada", "id_licencia": id_licencia})
@@ -109,6 +131,7 @@ def api_delete_licencia(id_licencia):
 # Vistas HTML (panel de control)
 # ---------------------------------------------------------------------
 @license_bp.route("/administraciones/licencias")
+@admin_required
 def admin_licencias():
     licencias = LicenciaJuego.query.order_by(LicenciaJuego.id_licencia.desc()).all()
     usuarios = Usuario.query.order_by(Usuario.username).all()
@@ -142,11 +165,12 @@ def admin_licencias():
 
 
 @license_bp.route("/licencias/crear", methods=["POST"])
+@admin_required
 def html_create_licencia():
     id_usuario = request.form.get("id_usuario", type=int)
     tipo_licencia = request.form.get("tipo_licencia")
     estado = request.form.get("estado", EstadoLicencia.ACTIVA)
-    if not Usuario.query.get(id_usuario):
+    if not _usuario_existe(id_usuario):
         flash("Selecciona un usuario válido.", "error")
         return redirect(url_for("licenses.admin_licencias"))
     if tipo_licencia not in TipoLicencia.ALL or estado not in EstadoLicencia.ALL:
@@ -163,19 +187,25 @@ def html_create_licencia():
         estado=estado,
     )
     db.session.add(licencia)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        flash(CODIGO_DUPLICADO_MSG, "error")
+        return redirect(url_for("licenses.admin_licencias"))
     flash("Licencia creada correctamente.", "success")
     return redirect(url_for("licenses.admin_licencias"))
 
 
 @license_bp.route("/licencias/<int:id_licencia>/editar", methods=["POST"])
+@admin_required
 def html_update_licencia(id_licencia):
-    licencia = LicenciaJuego.query.get_or_404(id_licencia)
+    licencia = db.get_or_404(LicenciaJuego, id_licencia)
     id_usuario = request.form.get("id_usuario", type=int)
     tipo_licencia = request.form.get("tipo_licencia")
     estado = request.form.get("estado")
     if (
-        not Usuario.query.get(id_usuario)
+        not _usuario_existe(id_usuario)
         or tipo_licencia not in TipoLicencia.ALL
         or estado not in EstadoLicencia.ALL
     ):
@@ -191,14 +221,20 @@ def html_update_licencia(id_licencia):
     licencia.tipo_licencia = tipo_licencia
     licencia.codigo_activacion = request.form.get("codigo_activacion", licencia.codigo_activacion)
     licencia.estado = estado
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        flash(CODIGO_DUPLICADO_MSG, "error")
+        return redirect(url_for("licenses.admin_licencias"))
     flash("Licencia actualizada correctamente.", "success")
     return redirect(url_for("licenses.admin_licencias"))
 
 
 @license_bp.route("/licencias/<int:id_licencia>/estado", methods=["POST"])
+@admin_required
 def html_update_estado_licencia(id_licencia):
-    licencia = LicenciaJuego.query.get_or_404(id_licencia)
+    licencia = db.get_or_404(LicenciaJuego, id_licencia)
     nuevo_estado = request.form.get("estado")
     if nuevo_estado in EstadoLicencia.ALL:
         if nuevo_estado == EstadoLicencia.ACTIVA and _has_other_active_license(
@@ -215,8 +251,9 @@ def html_update_estado_licencia(id_licencia):
 
 
 @license_bp.route("/licencias/<int:id_licencia>/eliminar", methods=["POST"])
+@admin_required
 def html_delete_licencia(id_licencia):
-    licencia = LicenciaJuego.query.get_or_404(id_licencia)
+    licencia = db.get_or_404(LicenciaJuego, id_licencia)
     db.session.delete(licencia)
     db.session.commit()
     flash("Licencia eliminada correctamente.", "success")

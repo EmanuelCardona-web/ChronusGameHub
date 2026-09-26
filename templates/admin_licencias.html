@@ -1,79 +1,141 @@
 {% extends "base.html" %}
-{% block title %}Administración de licencias · Chronos{% endblock %}
+{% from "_macros.html" import icon, avatar, estado_badge, tipo_badge, csrf_field %}
+{% block title %}Licencias · Chronos Gaming Hub{% endblock %}
+{% block topbar_title %}Administración / Licencias{% endblock %}
 
 {% block content %}
-<section class="chronos-panel">
-    <h1 class="chronos-title">Administración de <span class="accent">licencias</span></h1>
-    <p class="chronos-subtitle">{{ licencias|length }} registros</p>
-</section>
-
-<section class="chronos-table-panel">
-    <div class="chronos-table-heading">
-        <h2>Licencias de juego</h2>
-        <button class="btn btn-primary" type="button" onclick="document.getElementById('crear-licencia').showModal()">Crear nueva licencia</button>
+<div class="page-header">
+    <div>
+        <p class="breadcrumb">Administración</p>
+        <h1>Licencias de juego</h1>
+        <p>{{ licencias|length }} {{ 'licencia emitida' if licencias|length == 1 else 'licencias emitidas' }} &middot; un usuario solo puede tener una licencia activa</p>
     </div>
-    <div class="chronos-table-scroll">
-        <table class="chronos-table">
+    <button class="btn btn-primary" type="button" data-open-dialog="crear-licencia">{{ icon('plus') }} Nueva licencia</button>
+</div>
+
+<section class="card">
+    <div class="card-header">
+        <h2>Listado</h2>
+        <label class="search">
+            <span class="sr-only">Buscar licencias</span>
+            {{ icon('search') }}
+            <input class="input" type="search" placeholder="Buscar por usuario, código o estado" data-table-filter="tabla-licencias">
+        </label>
+    </div>
+    <div class="table-scroll">
+        <table class="table" id="tabla-licencias">
             <thead>
-                <tr><th>ID</th><th>Usuario</th><th>Tipo</th><th>Código</th><th>Estado</th><th>Acciones</th></tr>
+                <tr><th>ID</th><th>Usuario</th><th>Tipo</th><th>Código de activación</th><th>Estado</th><th class="num">Acciones</th></tr>
             </thead>
             <tbody>
                 {% for l in licencias %}
                 <tr>
-                    <td>{{ l.id_licencia }}</td>
-                    <td>{{ l.usuario.username }} <span class="chronos-muted">(#{{ l.id_usuario }})</span></td>
-                    <td>{{ l.tipo_licencia }}</td>
-                    <td class="chronos-code">{{ l.codigo_activacion }}</td>
-                    <td>{{ l.estado }}</td>
-                    <td class="chronos-actions">
-                        <button class="btn btn-sm btn-accent" type="button" onclick="document.getElementById('editar-licencia-{{ l.id_licencia }}').showModal()">Editar</button>
-                        <form class="chronos-inline-form" action="{{ url_for('licenses.html_delete_licencia', id_licencia=l.id_licencia) }}" method="POST">
-                            <button class="btn btn-sm btn-danger" type="submit" onclick="return confirm('¿Eliminar licencia?');">Eliminar</button>
-                        </form>
-                        <dialog class="chronos-dialog" id="editar-licencia-{{ l.id_licencia }}">
-                            <form class="chronos-form chronos-form-stacked" action="{{ url_for('licenses.html_update_licencia', id_licencia=l.id_licencia) }}" method="POST">
-                                <h2>Editar licencia #{{ l.id_licencia }}</h2>
-                                <label>Usuario<select name="id_usuario" required>
-                                    {% for u in usuarios_por_licencia[l.id_licencia] %}<option value="{{ u.id_usuario }}" {% if u.id_usuario == l.id_usuario %}selected{% endif %}>{{ u.username }} (#{{ u.id_usuario }})</option>{% endfor %}
-                                </select></label>
-                                <label>Tipo<select name="tipo_licencia" required>
-                                    {% for tipo in tipos_licencia %}<option value="{{ tipo }}" {% if tipo == l.tipo_licencia %}selected{% endif %}>{{ tipo }}</option>{% endfor %}
-                                </select></label>
-                                <label>Código de activación<input type="text" name="codigo_activacion" value="{{ l.codigo_activacion }}" required></label>
-                                <label>Estado<select name="estado" required>
-                                    {% for estado in estados_licencia %}<option value="{{ estado }}" {% if estado == l.estado %}selected{% endif %}>{{ estado }}</option>{% endfor %}
-                                </select></label>
-                                <div class="chronos-dialog-actions">
-                                    <button class="btn btn-accent" type="submit">Guardar cambios</button>
-                                    <button class="btn btn-secondary" type="button" onclick="this.closest('dialog').close()">Cancelar</button>
-                                </div>
+                    <td class="muted">#{{ l.id_licencia }}</td>
+                    <td><div class="cell-user">{{ avatar(l.usuario.username, cls='avatar-sm') }}<div><strong>{{ l.usuario.username }}</strong><span>ID {{ l.id_usuario }}</span></div></div></td>
+                    <td>{{ tipo_badge(l.tipo_licencia) }}</td>
+                    <td class="mono">{{ l.codigo_activacion }}</td>
+                    <td>{{ estado_badge(l.estado) }}</td>
+                    <td>
+                        <div class="row-actions">
+                            <button class="btn btn-ghost btn-sm" type="button" data-open-dialog="editar-licencia-{{ l.id_licencia }}" aria-label="Editar licencia {{ l.id_licencia }}">{{ icon('edit') }} Editar</button>
+                            <form action="{{ url_for('licenses.html_delete_licencia', id_licencia=l.id_licencia) }}" method="POST" data-confirm="¿Eliminar la licencia #{{ l.id_licencia }}? Esta acción no se puede deshacer.">
+                                {{ csrf_field() }}
+                                <button class="btn btn-danger-ghost btn-sm" type="submit" aria-label="Eliminar licencia {{ l.id_licencia }}">{{ icon('trash') }}</button>
                             </form>
-                        </dialog>
+                        </div>
                     </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="6" class="chronos-empty">No hay licencias registradas.</td></tr>
+                <tr><td colspan="6"><div class="empty-state">{{ icon('key') }}<strong>No hay licencias</strong>Emite la primera con el botón «Nueva licencia».</div></td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </section>
 
-<dialog class="chronos-dialog" id="crear-licencia">
-    <form class="chronos-form chronos-form-stacked" action="{{ url_for('licenses.html_create_licencia') }}" method="POST">
-        <h2>Crear licencia</h2>
-        <label>Usuario<select name="id_usuario" required>
-            {% for u in usuarios_disponibles %}<option value="{{ u.id_usuario }}">{{ u.username }} (#{{ u.id_usuario }})</option>{% endfor %}
-        </select></label>
-        <label>Tipo<select name="tipo_licencia" required>
-            {% for tipo in tipos_licencia %}<option value="{{ tipo }}">{{ tipo }}</option>{% endfor %}
-        </select></label>
-        <label>Código de activación<input type="text" name="codigo_activacion" placeholder="Se genera automáticamente si se deja vacío"></label>
-        <div class="chronos-dialog-actions">
-            <button class="btn btn-primary" type="submit" {% if not usuarios_disponibles %}disabled{% endif %}>Crear licencia</button>
-            <button class="btn btn-secondary" type="button" onclick="this.closest('dialog').close()">Cancelar</button>
+{% for l in licencias %}
+<dialog class="dialog" id="editar-licencia-{{ l.id_licencia }}" aria-labelledby="editar-licencia-{{ l.id_licencia }}-titulo">
+    <form action="{{ url_for('licenses.html_update_licencia', id_licencia=l.id_licencia) }}" method="POST">
+        {{ csrf_field() }}
+        <div class="dialog-header">
+            <h2 id="editar-licencia-{{ l.id_licencia }}-titulo">Editar licencia #{{ l.id_licencia }}</h2>
+            <button class="btn btn-ghost btn-icon" type="button" data-close-dialog aria-label="Cerrar">{{ icon('x') }}</button>
         </div>
-        {% if not usuarios_disponibles %}<p class="chronos-empty">No hay usuarios sin licencia activa disponibles.</p>{% endif %}
+        <div class="dialog-body form">
+            <div class="field">
+                <label class="field-label">Usuario
+                    <select class="select" name="id_usuario" required>
+                        {% for u in usuarios_por_licencia[l.id_licencia] %}<option value="{{ u.id_usuario }}" {{ 'selected' if u.id_usuario == l.id_usuario }}>{{ u.username }} (#{{ u.id_usuario }})</option>{% endfor %}
+                    </select>
+                </label>
+            </div>
+            <div class="form-row">
+                <div class="field">
+                    <label class="field-label">Tipo
+                        <select class="select" name="tipo_licencia" required>
+                            {% for tipo in tipos_licencia %}<option value="{{ tipo }}" {{ 'selected' if tipo == l.tipo_licencia }}>{{ tipo|replace('_', ' ')|capitalize }}</option>{% endfor %}
+                        </select>
+                    </label>
+                </div>
+                <div class="field">
+                    <label class="field-label">Estado
+                        <select class="select" name="estado" required>
+                            {% for estado in estados_licencia %}<option value="{{ estado }}" {{ 'selected' if estado == l.estado }}>{{ estado|capitalize }}</option>{% endfor %}
+                        </select>
+                    </label>
+                </div>
+            </div>
+            <div class="field">
+                <label class="field-label">Código de activación
+                    <input class="input mono" type="text" name="codigo_activacion" value="{{ l.codigo_activacion }}" maxlength="64" required>
+                </label>
+            </div>
+        </div>
+        <div class="dialog-footer">
+            <button class="btn btn-secondary" type="button" data-close-dialog>Cancelar</button>
+            <button class="btn btn-primary" type="submit">Guardar cambios</button>
+        </div>
+    </form>
+</dialog>
+{% endfor %}
+
+<dialog class="dialog" id="crear-licencia" aria-labelledby="crear-licencia-titulo">
+    <form action="{{ url_for('licenses.html_create_licencia') }}" method="POST">
+        {{ csrf_field() }}
+        <div class="dialog-header">
+            <h2 id="crear-licencia-titulo">Nueva licencia</h2>
+            <button class="btn btn-ghost btn-icon" type="button" data-close-dialog aria-label="Cerrar">{{ icon('x') }}</button>
+        </div>
+        <div class="dialog-body form">
+            {% if usuarios_disponibles %}
+            <div class="field">
+                <label class="field-label">Usuario
+                    <select class="select" name="id_usuario" required>
+                        {% for u in usuarios_disponibles %}<option value="{{ u.id_usuario }}">{{ u.username }} (#{{ u.id_usuario }})</option>{% endfor %}
+                    </select>
+                </label>
+                <span class="field-hint">Solo se listan usuarios sin una licencia activa.</span>
+            </div>
+            <div class="field">
+                <label class="field-label">Tipo
+                    <select class="select" name="tipo_licencia" required>
+                        {% for tipo in tipos_licencia %}<option value="{{ tipo }}">{{ tipo|replace('_', ' ')|capitalize }}</option>{% endfor %}
+                    </select>
+                </label>
+            </div>
+            <div class="field">
+                <label class="field-label">Código de activación
+                    <input class="input mono" type="text" name="codigo_activacion" maxlength="64" placeholder="Se genera automáticamente si se deja vacío">
+                </label>
+            </div>
+            {% else %}
+            <div class="empty-state">{{ icon('users') }}<strong>No hay usuarios disponibles</strong>Todos los usuarios ya tienen una licencia activa.</div>
+            {% endif %}
+        </div>
+        <div class="dialog-footer">
+            <button class="btn btn-secondary" type="button" data-close-dialog>Cancelar</button>
+            <button class="btn btn-primary" type="submit" {{ 'disabled' if not usuarios_disponibles }}>Crear licencia</button>
+        </div>
     </form>
 </dialog>
 {% endblock %}

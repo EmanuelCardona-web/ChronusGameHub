@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, avatar, estado_badge, tipo_badge %}
+{% block title %}Panel · Chronos Gaming Hub{% endblock %}
+{% block topbar_title %}Panel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Hola, {{ usuario.username }}</h1>
+        <p>{{ 'Resumen general de la plataforma.' if is_admin else 'Este es el resumen de tu cuenta.' }}</p>
+    </div>
+    {% if is_admin %}
+    <a class="btn btn-primary" href="{{ url_for('licenses.admin_licencias') }}">{{ icon('plus') }} Nueva licencia</a>
+    {% endif %}
+</div>
+
+{% if is_admin %}
+<div class="grid grid-4">
+    <div class="card stat">
+        <div class="stat-top">Usuarios <span class="stat-icon">{{ icon('users') }}</span></div>
+        <div class="stat-value">{{ total_usuarios }}</div>
+    </div>
+    <div class="card stat">
+        <div class="stat-top">Licencias activas <span class="stat-icon is-success">{{ icon('check-circle') }}</span></div>
+        <div class="stat-value">{{ licencias_por_estado['ACTIVA'] }}</div>
+    </div>
+    <div class="card stat">
+        <div class="stat-top">Expiradas <span class="stat-icon is-warning">{{ icon('alert') }}</span></div>
+        <div class="stat-value">{{ licencias_por_estado['EXPIRADA'] }}</div>
+    </div>
+    <div class="card stat">
+        <div class="stat-top">Suspendidas <span class="stat-icon is-danger">{{ icon('lock') }}</span></div>
+        <div class="stat-value">{{ licencias_por_estado['SUSPENDIDA'] }}</div>
+    </div>
+</div>
+
+<div class="grid grid-2 section-gap">
+    <section class="card">
+        <div class="card-header">
+            <h2>Usuarios recientes</h2>
+            <a href="{{ url_for('users.admin_usuarios') }}">Ver todos</a>
+        </div>
+        <div class="table-scroll">
+            <table class="table">
+                <tbody>
+                    {% for u in ultimos_usuarios %}
+                    <tr>
+                        <td><div class="cell-user">{{ avatar(u.username, cls='avatar-sm') }}<div><strong>{{ u.username }}</strong><span>{{ u.email }}</span></div></div></td>
+                        <td class="num muted">{{ u.fecha_registro.strftime('%d/%m/%Y') if u.fecha_registro else '—' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td><div class="empty-state">{{ icon('inbox') }}<strong>Sin usuarios</strong>Aún no hay registros.</div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="card">
+        <div class="card-header">
+            <h2>Licencias recientes</h2>
+            <a href="{{ url_for('licenses.admin_licencias') }}">Ver todas</a>
+        </div>
+        <div class="table-scroll">
+            <table class="table">
+                <tbody>
+                    {% for l in ultimas_licencias %}
+                    <tr>
+                        <td><strong>{{ l.usuario.username }}</strong><br><span class="muted mono">{{ l.codigo_activacion[:18] }}{{ '…' if l.codigo_activacion|length > 18 }}</span></td>
+                        <td>{{ tipo_badge(l.tipo_licencia) }}</td>
+                        <td class="num">{{ estado_badge(l.estado) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td><div class="empty-state">{{ icon('inbox') }}<strong>Sin licencias</strong>Crea la primera desde administración.</div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endif %}
+
+<div class="grid grid-2 section-gap">
+    <section class="card">
+        <div class="card-header"><h2>Mi perfil</h2></div>
+        <div class="card-body stack">
+            <div class="profile-head">
+                {{ avatar(current_user.name, current_user.picture, 'avatar-lg') }}
+                <div>
+                    <h2>{{ usuario.username }}</h2>
+                    <p class="muted">{{ usuario.email }}</p>
+                </div>
+            </div>
+            <dl class="detail-list">
+                <dt>Documento</dt>
+                <dd>{% if usuario.tipo_documento %}{{ usuario.tipo_documento }} {{ usuario.numero_documento }}{% else %}<a href="{{ url_for('auth.complete_profile') }}">Completar</a>{% endif %}</dd>
+                <dt>Correo</dt>
+                <dd>{% if current_user.email_verified %}<span class="badge badge-success">Verificado</span>{% else %}<span class="badge badge-warning">Pendiente de verificar</span>{% endif %}</dd>
+                <dt>Miembro desde</dt>
+                <dd>{{ usuario.fecha_registro.strftime('%d/%m/%Y') if usuario.fecha_registro else '—' }}</dd>
+                <dt>Puntos totales</dt>
+                <dd>{{ usuario.puntos_totales }}</dd>
+            </dl>
+        </div>
+    </section>
+
+    <section class="card">
+        <div class="card-header"><h2>Mis licencias</h2></div>
+        {% if usuario.licencias %}
+        <div class="table-scroll">
+            <table class="table">
+                <tbody>
+                    {% for l in usuario.licencias %}
+                    <tr>
+                        <td>{{ tipo_badge(l.tipo_licencia) }}</td>
+                        <td class="mono muted">{{ l.codigo_activacion }}</td>
+                        <td class="num">{{ estado_badge(l.estado) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">{{ icon('key') }}<strong>Sin licencias todavía</strong>Cuando adquieras un juego, tu licencia aparecerá aquí.</div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
