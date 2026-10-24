@@ -3,7 +3,6 @@ security.py
 -----------
 Piezas transversales de seguridad:
   - Cliente OAuth/OIDC de Auth0 (Authlib): valida state, nonce y firma del ID token.
-  - Protección CSRF (Flask-WTF) para formularios y peticiones fetch.
   - Decoradores login_required / admin_required.
   - Cabeceras HTTP de seguridad (CSP, anti-clickjacking, etc.).
 """
@@ -12,10 +11,11 @@ from functools import wraps
 
 from authlib.integrations.flask_client import OAuth
 from flask import current_app, flash, g, jsonify, redirect, request, session, url_for
-from flask_wtf.csrf import CSRFProtect
+
+# Prefijo de las rutas de la API JSON; sus errores se responden en JSON en lugar de HTML.
+API_PREFIX = "/api/"
 
 oauth = OAuth()
-csrf = CSRFProtect()
 
 def _content_security_policy(auth0_domain):
     # form-action incluye Auth0 porque el logout (POST) termina redirigiendo a su dominio.
@@ -35,7 +35,6 @@ def _content_security_policy(auth0_domain):
 
 
 def init_security(app):
-    csrf.init_app(app)
     oauth.init_app(app)
 
     domain = app.config.get("AUTH0_DOMAIN")
@@ -92,7 +91,7 @@ def is_admin():
 
 
 def _wants_json():
-    return request.path.startswith("/api/")
+    return request.path.startswith(API_PREFIX)
 
 
 def login_required(view):

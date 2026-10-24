@@ -9,21 +9,25 @@ la capa de seguridad y los blueprints de rutas (auth, usuarios, licencias).
 from urllib.parse import urlparse
 
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, url_for
-from flask_wtf.csrf import CSRFError
+from flask_wtf.csrf import CSRFError, CSRFProtect
 from sqlalchemy import func
 
 from config import Config
 from models import db, Usuario, LicenciaJuego, EstadoLicencia
-from security import init_security, is_admin, login_required
+from security import API_PREFIX, init_security, is_admin, login_required
 
 from routes.auth_routes import auth_bp
 from routes.user_routes import user_bp
 from routes.license_routes import license_bp
 
+# Protección CSRF (Flask-WTF) para formularios y peticiones fetch.
+csrf = CSRFProtect()
+
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    csrf.init_app(app)
 
     db.init_app(app)
     init_security(app)
@@ -66,7 +70,7 @@ def create_app():
 
     @app.errorhandler(CSRFError)
     def handle_csrf_error(error):
-        if request.path.startswith("/api/"):
+        if request.path.startswith(API_PREFIX):
             return jsonify({"error": "Token CSRF inválido o ausente."}), 400
         flash("Tu sesión del formulario expiró. Vuelve a intentarlo.", "error")
         referrer = request.referrer
@@ -76,14 +80,14 @@ def create_app():
 
     @app.errorhandler(404)
     def not_found(error):
-        if request.path.startswith("/api/"):
+        if request.path.startswith(API_PREFIX):
             return jsonify({"error": "Recurso no encontrado."}), 404
         return render_template("error.html", code=404, message="La página que buscas no existe."), 404
 
     @app.errorhandler(500)
     def server_error(error):
         db.session.rollback()
-        if request.path.startswith("/api/"):
+        if request.path.startswith(API_PREFIX):
             return jsonify({"error": "Error interno del servidor."}), 500
         return render_template("error.html", code=500, message="Algo salió mal. Intenta de nuevo."), 500
 
